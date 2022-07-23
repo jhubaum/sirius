@@ -8,7 +8,8 @@ use tui::{
     Frame,
 };
 
-use crate::tasks::StatefulTaskView;
+mod tasks;
+use tasks::StatefulTaskView;
 
 pub enum AppEvent {
     Exit,

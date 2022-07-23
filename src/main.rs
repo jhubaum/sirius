@@ -17,8 +17,6 @@ use tui::{
 mod app;
 use app::{App, AppEvent};
 
-mod tasks;
-
 fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;

@@ -60,19 +60,14 @@ fn run_app<B: Backend>(
             .unwrap_or_else(|| Duration::from_secs(0));
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                if let Some(evt) = app.on_key_pressed(key.code) {
-                    match evt {
-                        AppEvent::Exit => return Ok(()),
-                    }
-                }
+                match app.on_key_pressed(key.code) {
+                    AppEvent::RequiresActionPopulation => app.populate_actions(),
+                    AppEvent::Exit => return Ok(()),
+                    AppEvent::None => {}
+                };
             }
         }
         if last_tick.elapsed() >= tick_rate {
-            if let Some(evt) = app.on_tick() {
-                match evt {
-                    AppEvent::Exit => return Ok(()),
-                }
-            }
             last_tick = Instant::now();
         }
     }

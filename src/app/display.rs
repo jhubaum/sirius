@@ -8,12 +8,14 @@ use crossterm::event::KeyCode;
 use std::cmp;
 use tui::{
     backend::Backend,
+    layout::Rect,
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, ListState},
     Frame,
 };
 
+use super::ActionPreviewSet;
 use super::tasks::{ProjectData, Task};
 
 /// A trait to define all interactions with a task.
@@ -23,6 +25,7 @@ use super::tasks::{ProjectData, Task};
 trait TaskView {
     fn handle_input(&mut self, keycode: KeyCode) -> bool;
     fn create_widget(&self) -> ListItem;
+    fn populate_actions(&self, actions: &mut ActionPreviewSet);
 }
 
 /// The central struct of this module.
@@ -46,6 +49,14 @@ impl ProjectDataEditView {
         view
     }
 
+    pub fn populate_actions(&self, actions: &mut ActionPreviewSet) {
+        if let Some(i) = self.state.selected() {
+            self.tasks[i].populate_actions(actions);
+
+            actions.insert(KeyCode::Esc, "Unselect task");
+        }
+    }
+
     pub fn handle_input(&mut self, keycode: KeyCode) -> bool {
         if let Some(i) = self.state.selected() {
             if self.tasks[i].handle_input(keycode) {
@@ -63,7 +74,7 @@ impl ProjectDataEditView {
         handeled
     }
 
-    pub fn render<B: Backend>(&mut self, frame: &mut Frame<B>) {
+    pub fn render<B: Backend>(&mut self, frame: &mut Frame<B>, rect: Rect) {
         let items: Vec<ListItem> = self.tasks.iter().map(|task| task.create_widget()).collect();
 
         let items = List::new(items)
@@ -79,7 +90,7 @@ impl ProjectDataEditView {
             );
 
         // We can now render the item list
-        frame.render_stateful_widget(items, frame.size(), &mut self.state);
+        frame.render_stateful_widget(items, rect, &mut self.state);
     }
 
     fn next(&mut self) {
@@ -115,6 +126,10 @@ struct TaskViewImpl {
 }
 
 impl TaskView for TaskViewImpl {
+    fn populate_actions(&self, actions: &mut ActionPreviewSet) {
+        actions.insert(KeyCode::Enter, "Mark as done");
+    }
+
     fn handle_input(&mut self, keycode: KeyCode) -> bool {
         let mut handeled = true;
         match keycode {

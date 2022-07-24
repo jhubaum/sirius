@@ -1,7 +1,10 @@
-use std::cmp;
-use tui::widgets::ListState;
+use std::collections::HashMap;
 
+type TaskID = usize;
+
+#[derive(Clone)]
 pub struct Task {
+    id: TaskID,
     // change this to timestamp asap
     // also use a task state instead of a boolean
     pub done: bool,
@@ -9,45 +12,29 @@ pub struct Task {
 }
 
 #[derive(Default)]
-pub struct StatefulTaskView {
-    pub state: ListState,
-    pub tasks: Vec<Task>,
+pub struct ProjectData {
+    pub tasks: HashMap<TaskID, Task>,
 }
 
-impl StatefulTaskView {
-    pub fn insert_below_cursor(&mut self) {
-        let new = Task {
-            done: false,
-            description: format!("Test {}", self.tasks.len()),
+impl ProjectData {
+    pub fn dummy_data() -> Self {
+        let mut data = Self::default();
+        data.insert_task(String::from("This is a test task"));
+        data.insert_task(String::from("This is another test task"));
+        data
+    }
+
+    pub fn insert_task(&mut self, description: String) {
+        // TODO: Properly generate id
+        let task = Task {
+            id: self.tasks.len(), done: false, description
         };
-        match self.state.selected() {
-            None => self.tasks.push(new),
-            Some(i) => self.tasks.insert(i, new),
-        }
+        self.tasks.insert(task.id(), task);
     }
+}
 
-    pub fn mark_selected_as_done(&mut self) {
-        if let Some(i) = self.state.selected() {
-            self.tasks[i].done = true;
-        }
-    }
-
-    pub fn next(&mut self) {
-        self.state.select(Some(match self.state.selected() {
-            Some(i) => cmp::min(self.tasks.len() - 1, i + 1),
-            None => 0,
-        }))
-    }
-
-    pub fn previous(&mut self) {
-        self.state.select(Some(match self.state.selected() {
-            Some(0) => 0,
-            Some(i) => i - 1,
-            None => self.tasks.len() - 1,
-        }))
-    }
-
-    pub fn unselect(&mut self) {
-        self.state.select(None);
+impl Task {
+    pub fn id(&self) -> TaskID {
+        self.id
     }
 }

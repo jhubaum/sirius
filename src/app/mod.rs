@@ -1,28 +1,25 @@
 use crossterm::event::KeyCode;
-
-use tui::{
-    backend::Backend,
-    style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem},
-    Frame,
-};
+use tui::{backend::Backend, Frame};
 
 mod tasks;
-use tasks::StatefulTaskView;
+use tasks::ProjectData;
+
+mod display;
+use display::ProjectDataEditView;
 
 pub enum AppEvent {
     Exit,
 }
 
 pub struct App {
-    tasks: StatefulTaskView,
+    view: ProjectDataEditView,
 }
 
 impl App {
     pub fn new() -> Self {
+        let data = ProjectData::dummy_data();
         Self {
-            tasks: StatefulTaskView::default(),
+            view: ProjectDataEditView::new(data),
         }
     }
 
@@ -31,50 +28,18 @@ impl App {
     }
 
     pub fn on_key_pressed(&mut self, keycode: KeyCode) -> Option<AppEvent> {
+        if self.view.handle_input(keycode) {
+            return None;
+        }
+
         match keycode {
-            KeyCode::Char('q') => return Some(AppEvent::Exit),
-            KeyCode::Esc => self.tasks.unselect(),
-            KeyCode::Down => self.tasks.next(),
-            KeyCode::Up => self.tasks.previous(),
-            KeyCode::Char('a') => self.tasks.insert_below_cursor(),
-            KeyCode::Enter => self.tasks.mark_selected_as_done(),
-            _ => {}
-        };
-        None
+            KeyCode::Char('q') => Some(AppEvent::Exit),
+            KeyCode::Esc => Some(AppEvent::Exit),
+            _ => None,
+        }
     }
 
     pub fn render<B: Backend>(&mut self, f: &mut Frame<B>) {
-        let items: Vec<ListItem> = self
-            .tasks
-            .tasks
-            .iter()
-            .map(|task| {
-                ListItem::new::<Spans>(
-                    vec![
-                        Span::styled("- ", Style::default().fg(Color::Blue)),
-                        Span::raw(format!("[{}] ", if task.done { "X" } else { " " })),
-                        Span::styled(&task.description, if task.done { Style::default().fg(Color::Gray) } else { Style::default() })
-                    ]
-                    .into(),
-                )
-            })
-            .collect();
-
-        // Create a List from all list items and highlight the currently selected one
-        let items = List::new(items)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Sirus – Task Manager"),
-            )
-            .highlight_style(
-                Style::default()
-                    .bg(Color::LightGreen)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol(">> ");
-
-        // We can now render the item list
-        f.render_stateful_widget(items, f.size(), &mut self.tasks.state);
+        self.view.render(f);
     }
 }
